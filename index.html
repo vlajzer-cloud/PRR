@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Пиксельный Петух — Финальная Верстка</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Пиксельный Петух — Compact UI</title>
   <style>
     @font-face {
       font-family: 'Urbox Nu Std 12';
@@ -10,70 +11,58 @@
       font-display: swap;
     }
     body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #E8E2DE;
-      font-family: 'Urbox Nu Std 12', sans-serif;
-      overflow: hidden;
-      user-select: none;
+      margin: 0; display: flex; justify-content: center; align-items: center;
+      height: 100vh; background: #E8E2DE; font-family: 'Urbox Nu Std 12', sans-serif;
+      overflow: hidden; user-select: none; touch-action: manipulation;
     }
-    canvas {
-      background: #E8E2DE;
-      border: 3px solid #070606;
-      image-rendering: pixelated;
-      cursor: pointer;
-    }
+    canvas { background: #E8E2DE; border: 3px solid #070606; image-rendering: pixelated; cursor: pointer; max-width: 95%; }
   </style>
 </head>
 <body>
-<canvas id="game" width="800" height="260"></canvas>
+<canvas id="game" width="800" height="320"></canvas>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const ROAD_Y = 210;
-const PADDING = 20; // Единый отступ для всех элементов интерфейса
-let gameSpeed = 6;
+const PADDING = 25;       
+const UI_SIZE = 28;       
+const ROAD_Y = canvas.height - PADDING - UI_SIZE - PADDING;
+const HI_OFFSET = 4; 
+
+let gameSpeed = 6.5;
 let score = 0;
+let highScore = localStorage.getItem('roosterHiScore') || 0;
 let lives = 3;
 let gameOver = false;
 let frameCount = 0;
-let nextSpawn = 15; 
+let distanceToNext = 120; 
 let invulFrames = 0;
-
-// Ваш логотип
-const logoSVG = `<svg width="760" height="113" viewBox="0 0 760 113" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M46.9131 56.2959H46.9141V37.5312H65.6787V56.2959H84.4443V37.5312H121.976V56.2959H112.593V75.0615H56.2969V56.2959H56.2959V75.0615H46.9131V93.8271H37.5312V112.593H0V93.8271H9.38281V75.0615H18.7656V56.2959H28.1484V37.5312H46.9131V56.2959ZM178.271 56.2959H197.037V37.5312H234.567V56.2959H225.186V75.0615H159.506V93.8271H206.42V112.593H150.124V93.8271H150.123V112.593H131.358V93.8271H121.976V75.0615H131.358V56.2959H140.741V37.5312H178.271V56.2959ZM290.864 56.2959H281.481V75.0615H272.099V93.8271H262.716V112.593H243.951V93.8271H243.95V112.593H225.186V93.8271H234.568V75.0615H243.951V56.2959H253.334V37.5312H290.864V56.2959ZM328.395 56.2959H328.396V37.5312H347.161V56.2959H337.778V75.0615H328.395V93.8271H319.012V112.593H281.481V93.8271H290.864V75.0615H300.247V56.2959H309.63V37.5312H328.395V56.2959ZM459.753 56.2959H450.37V75.0615H440.988V93.8271H431.605V112.593H394.074V93.8271H403.457V75.0615H412.84V56.2959H422.223V37.5312H459.753V56.2959ZM516.049 56.2959H525.432V75.0615H497.284V93.8271H525.432V112.593H469.137V93.8271H459.754V75.0615H469.137V56.2959H478.519V37.5312H516.049V56.2959ZM544.197 112.593H525.433V93.8271H544.197V112.593ZM609.876 56.2959H609.877V37.5312H628.643V56.2959H619.26V75.0615H609.876V93.8271H600.493V112.593H562.963V93.8271H572.346V75.0615H581.729V56.2959H591.111V37.5312H609.876V56.2959ZM684.938 56.2959H675.556V75.0615H666.173V93.8271H656.79V112.593H638.025V93.8271H638.024V112.593H619.26V93.8271H628.643V75.0615H638.025V56.2959H647.407V37.5312H684.938V56.2959ZM722.469 56.2959H722.47V37.5312H741.235V56.2959H731.852V75.0615H722.469V93.8271H713.087V112.593H675.556V93.8271H684.938V75.0615H694.321V56.2959H703.704V37.5312H722.469V56.2959ZM140.74 93.8271H140.741V75.0615H140.74V93.8271ZM253.333 93.8271H253.334V75.0615H253.333V93.8271ZM150.123 75.0615H150.124V56.2959H150.123V75.0615ZM262.716 75.0615H262.717V56.2959H262.716V75.0615ZM319.012 75.0615H319.013V56.2959H319.012V75.0615ZM403.457 56.2959H394.074V75.0615H356.543V56.2959H365.926V37.5312H403.457V56.2959ZM553.58 37.5312H553.581H572.346V56.2959H562.963V75.0615H544.198V56.2959H544.197V75.0615H525.433V56.2959H534.815V37.5312H553.58ZM600.493 75.0615H600.494V56.2959H600.493V75.0615ZM65.6787 18.7656H65.6797V0H121.976V18.7656H131.358V37.5303H93.8271V18.7656H75.0615V37.5303H56.2969V18.7656H56.2959V37.5303H37.5312V18.7656H46.9141V0H65.6787V18.7656ZM178.271 18.7656H178.272V0H234.567V18.7656H243.95V37.5303H206.42V18.7656H187.654V37.5303H150.124V18.7656H159.506V0H178.271V18.7656ZM309.63 18.7656H300.247V37.5303H262.717V18.7656H272.099V0H309.63V18.7656ZM365.926 18.7656H384.691V0H422.223V18.7656H440.987V0H459.753V18.7656H459.754V0H478.519V18.7656H469.136V37.5303H319.013V18.7656H328.396V0H365.926V18.7656ZM516.049 18.7656H516.05V0H534.814V18.7656H525.432V37.5303H487.901V18.7656H497.284V0H516.049V18.7656ZM572.346 18.7656H581.729V37.5303H544.198V18.7656H534.815V0H553.58V18.7656H553.581V0H572.346V18.7656ZM684.938 18.7656H694.321V37.5303H656.79V18.7656H638.024V37.5303H600.494V18.7656H609.877V0H684.938V18.7656ZM760 18.7656H722.47V0H760V18.7656Z" fill="#A5221D"/></svg>`;
-
-const logo = new Image();
-logo.src = 'data:image/svg+xml;base64,' + btoa(logoSVG);
-
-// Иконка сердца
-const heartSVG = `<svg width="20" height="20" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M2 1H4V2H6V1H8V2H9V5H8V6H7V7H6V8H4V7H3V6H2V5H1V2H2V1Z" fill="#A5221D"/></svg>`;
-const heartImg = new Image();
-heartImg.src = 'data:image/svg+xml;base64,' + btoa(heartSVG);
-
-const rooster = {
-  x: 80, y: ROAD_Y, vy: 0, gravity: 0.7, jumpPower: -13, onGround: true, width: 40, height: 36, frame: 0, frameTimer: 0
-};
-
-const roosterImg = new Image();
-roosterImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="225" height="200" viewBox="0 0 225 200"><path d="M125 200.002H150V187.502H125V200.002ZM87.5 187.502V200.002H112.5V187.502H87.5ZM112.5 187.502H125V175.002H112.5V187.502ZM187.5 0.000976562H175V12.501H187.5V25.001H162.5V37.501H150V25.001H137.5V50.001H162.5V62.501H137.5V75.001H100V87.501H87.5V50.0029H75V62.5H62.5V75H75V75.002H50V62.5029H37.5V87.5029H50V100.001H62.5V100.002H50V125.002H62.5V137.502H75V150.002H87.5V162.502H100V175.002H112.5V162.502H150V150.002H175V137.502H187.5V75.001H200V87.501H212.5V62.501H225V50.001H212.5V37.501H200V25.001H212.5V12.501H200V0L187.5 0.000976562ZM12.5 87.5029H25V62.5029H37.5V50.0029H12.5V87.5029ZM200 62.501H187.5V50.001H200V62.501ZM50 62.5H62.5V50H50V62.5ZM62.5 50H75V37.5H62.5V50ZM12.5 25H25V25.002H37.5V37.5H25V50H50V37.5H62.5V25H50V12.502H25V12.5H12.5V25ZM0 37.5H12.5V25H0V37.5ZM150 25H175V12.5H150V25Z" fill="%23A5221D"/></svg>';
+let nextHeartSpawn = 1000; 
 
 const obstacles = [];
+const particles = []; 
+const collectibles = []; 
 
-function spawnObstacle() {
-  if (frameCount >= nextSpawn) {
-    const h = 35 + Math.random() * 25;
-    obstacles.push({
-      x: canvas.width, y: ROAD_Y, w: 15, h,
-      spots: Array.from({ length: 4 }, () => ({ ry: Math.random() * 0.8, rw: 0.5, side: Math.random() > 0.5 ? 'left' : 'right' }))
-    });
-    const interval = Math.max(25, 55 - (gameSpeed * 1.5));
-    nextSpawn = frameCount + interval + Math.random() * 35;
+// --- ГРАФИКА ---
+const heartSvg = `<svg width="350" height="300" viewBox="0 0 350 300" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M200 300.003H150V250.003H200V300.003ZM200 250.001H100.001V200.001H200V250.001ZM250.001 250.001H200.001V200.001H250.001V250.001ZM200 200H50.001V150H200V200ZM250.001 200H200.001V150H250.001V200ZM300.003 200H250.003V150H300.003V200ZM50 149.999H0V50.001H50V149.999ZM200 149.999H50.001V50.001H200V149.999ZM250.001 149.999H200.001V50.001H250.001V149.999ZM350 149.999H250.003V50.001H350V149.999ZM150.001 50H50.001V0H150.001V50ZM250.001 50H200.001V0H250.001V50ZM300.003 50H250.003V0H300.003V50Z" fill="#A5221D"/></svg>`;
+const logoSvg = `<svg width="2025" height="300" viewBox="0 0 2025 300" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 300.001H0V250.001H50V300.001ZM100.002 300.001H50.002V250.001H100.002V300.001ZM399.999 300.001H349.999V250.001H399.999V300.001ZM499.997 300.001H400V250.001H499.997V300.001ZM549.999 300.001H499.999V250.001H549.999V300.001ZM699.995 300.001H599.995V250.001H699.995V300.001ZM849.994 300.001H749.997V250.001H849.994V300.001ZM1150 300.001H1050V250.001H1150V300.001ZM1350 300.001H1250V250.001H1350V300.001ZM1400 300.001H1350V250.001H1400V300.001ZM1450 300.001H1400V250.001H1450V300.001ZM1549.99 300.001H1499.99V250.001H1549.99V300.001ZM1599.99 300.001H1549.99V250.001H1599.99V300.001ZM1699.99 300.001H1649.99V250.001H1699.99V300.001ZM1750 300.001H1700V250.001H1750V300.001ZM1849.99 300.001H1800V250.001H1849.99V300.001ZM1900 300.001H1850V250.001H1900V300.001ZM174.999 150H225V100.001H324.998V150.001H300V200H250V150.001H249.998V200H150.001V150.001H149.998V200H125V249.997H75V200H74.999V249.997H24.999V199.997H50.002V150H75V100.001H174.999V150ZM474.996 150H499.997V200H424.999V249.997H374.999V200H374.998V249.997H324.998V199.997H349.999V150H374.999V100.001H474.996V150ZM774.998 150.001H749.998V200H724.998V249.997H674.998V200H674.997V249.997H624.997V199.997H649.995V150H674.998V100.001H774.998V150.001ZM874.996 150H874.998V100.001H924.998V150.001H899.999V200H874.996V249.997H774.996V199.997H799.994V150H824.996V100.001H874.996V150ZM1224.99 150.001H1199.99V200H1175V249.997H1125V199.999H1125V249.997H1075V199.997H1100V149.999H1125V100.001H1224.99V150.001ZM1374.99 149.999H1400V199.999H1350V150.001H1350V200H1325V249.997H1225V199.997H1250V150H1275V100.001H1374.99V149.999ZM1624.99 150H1625V100.001H1675V150.001H1649.99V200H1624.99V249.997H1525V199.997H1549.99V150H1574.99V100.001H1624.99V150ZM1774.99 150H1775V100.001H1825V150.001H1799.99V200H1774.99V249.997H1674.99V199.997H1700V149.999H1724.99V100.001H1774.99V150ZM1924.99 150H1924.99V100.001H1974.99V150.001H1950V200H1924.99V249.997H1825V199.997H1850V149.999H1874.99V100.001H1924.99V150ZM574.997 150H575V100.001H625V150.001H600V200H550V150.001H549.999V200H499.999V150H524.997V100.001H574.997V150ZM1024.99 150H1025V100.001H1075V150.001H1049.99V200H949.995V150H974.994V100.001H1024.99V150ZM1475 149.999H1475V100.001H1525V150.001H1500V199.999H1450V150.001H1450V200H1400V150H1425V100.001H1475V149.999ZM399.999 199.997H400V150.001H399.999V199.997ZM699.995 199.997H699.998V150.001H699.995V199.997ZM849.994 199.997H849.999V150.001H849.994V199.997ZM174.999 49.999H175V0H324.998V49.999H349.999V99.999H250V50H200.001V99.999H150.001V50H149.998V99.999H99.998V49.999H124.999V0H174.999V49.999ZM474.996 49.999H474.998V0H574.997V49.999H575V0H625V49.999H649.995V99.999H550V50H499.997V99.999H400V49.999H424.996V0H474.996V49.999ZM824.996 50H799.997V99.999H699.998V49.999H724.998V0H824.996V50ZM974.998 49.999H1025V0H1125V49.999H1174.99V0H1224.99V49.999H1225V0H1275V50H1250V99.999H1200V50H1199.99V99.999H1050V50H1049.99V99.999H850V49.999H874.998V0H974.998V49.999ZM1424.99 50H1400V99.999H1350V50H1350V99.999H1300V49.999H1325V0H1424.99V50ZM1475 49.999H1475V0H1525V49.999H1549.99V99.999H1450V50H1425V0H1475V49.999ZM1774.99 49.999H1775V0H1825V49.999H1849.99V99.999H1800H1799.99H1750V50H1699.99V99.999H1599.99V49.999H1625V0H1774.99V49.999ZM1974.99 50H1924.99V0H1974.99V50ZM2025 50H1975V0H2025V50Z" fill="#A5221D"/></svg>`;
+
+const heartImg = new Image(); heartImg.src = 'data:image/svg+xml;base64,' + btoa(heartSvg);
+const logoImg = new Image(); logoImg.src = 'data:image/svg+xml;base64,' + btoa(logoSvg);
+const roosterImg = new Image(); roosterImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="225" height="200" viewBox="0 0 225 200"><path d="M125 200.002H150V187.502H125V200.002ZM87.5 187.502V200.002H112.5V187.502H87.5ZM112.5 187.502H125V175.002H112.5V187.502ZM187.5 0.000976562H175V12.501H187.5V25.001H162.5V37.501H150V25.001H137.5V50.001H162.5V62.501H137.5V75.001H100V87.501H87.5V50.0029H75V62.5H62.5V75H75V75.002H50V62.5029H37.5V87.5029H50V100.001H62.5V100.002H50V125.002H62.5V137.502H75V150.002H87.5V162.502H100V175.002H112.5V162.502H150V150.002H175V137.502H187.5V75.001H200V87.501H212.5V62.501H225V50.001H212.5V37.501H200V25.001H212.5V12.501H200V0L187.5 0.000976562ZM12.5 87.5029H25V62.5029H37.5V50.0029H12.5V87.5029ZM200 62.501H187.5V50.001H200V62.501ZM50 62.5H62.5V50H50V62.5ZM62.5 50H75V37.5H62.5V50ZM12.5 25H25V25.002H37.5V37.5H25V50H50V37.5H62.5V25H50V12.502H25V12.5H12.5V25ZM0 37.5H12.5V25H0V37.5ZM150 25H175V12.5H150V25Z" fill="%23A5221D"/></svg>';
+
+const rooster = { x: 80, y: ROAD_Y, vy: 0, gravity: 0.7, jumpPower: -13, width: 40, height: 36, onGround: true, frame: 0, frameTimer: 0 };
+
+function createHitEffect(x, y) {
+    for (let i = 0; i < 15; i++) {
+        particles.push({ x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, size: 2+Math.random()*4, life: 1, color: '#A5221D' });
+    }
+}
+
+function spawnDust() {
+  if (rooster.onGround && !gameOver && frameCount % 5 === 0) {
+    particles.push({ x: rooster.x+5, y: ROAD_Y-2, vx: -gameSpeed*0.5-Math.random()*2, vy: -Math.random()*3, size: 3+Math.random()*5, life: 1, color: 'rgba(165, 34, 29, 0.6)' });
   }
 }
 
@@ -82,92 +71,122 @@ function update() {
   frameCount++;
   if (invulFrames > 0) invulFrames--;
   
-  gameSpeed = 6 + (score * 0.16);
-
-  rooster.vy += rooster.gravity;
-  rooster.y += rooster.vy;
+  gameSpeed = 6.5 + (score * 0.12);
+  rooster.vy += rooster.gravity; rooster.y += rooster.vy;
   if (rooster.y >= ROAD_Y) { rooster.y = ROAD_Y; rooster.vy = 0; rooster.onGround = true; }
+  
+  spawnDust();
+  
+  distanceToNext -= gameSpeed;
+  if (distanceToNext <= 0) {
+    obstacles.push({ x: canvas.width, y: ROAD_Y, w: 20, h: 35 + Math.random() * 40, spots: Array.from({length:3},()=>({ry:Math.random()*0.8,rw:0.6,side:Math.random()>0.5?'left':'right'}))});
+    distanceToNext = 250 + Math.random() * 550;
+  }
 
-  spawnObstacle();
+  if (score >= 25 && lives < 3 && frameCount > nextHeartSpawn) {
+      collectibles.push({ x: canvas.width, y: ROAD_Y - 60 - Math.random() * 50, w: 25, h: 22 });
+      nextHeartSpawn = frameCount + 800 + Math.random() * 1200;
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.03;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
   for (let i = obstacles.length - 1; i >= 0; i--) {
     obstacles[i].x -= gameSpeed;
     const o = obstacles[i];
-    if (invulFrames === 0 && rooster.x + 8 < o.x + o.w && rooster.x + rooster.width - 8 > o.x &&
-        rooster.y - rooster.height + 8 < o.y && rooster.y > o.y - o.h) {
-      lives--;
-      invulFrames = 80;
-      if (lives <= 0) gameOver = true;
+    if (invulFrames === 0 && rooster.x + 8 < o.x + o.w && rooster.x + rooster.width - 8 > o.x && rooster.y - rooster.height + 8 < o.y && rooster.y > o.y - o.h) { 
+        lives--; invulFrames = 80; createHitEffect(rooster.x + 20, rooster.y - 15);
+        if (lives <= 0) { gameOver = true; if (score > highScore) { highScore = score; localStorage.setItem('roosterHiScore', highScore); } } 
     }
     if (o.x + o.w < 0) { obstacles.splice(i, 1); score++; }
+  }
+
+  for (let i = collectibles.length - 1; i >= 0; i--) {
+      const c = collectibles[i]; c.x -= gameSpeed;
+      if (rooster.x < c.x + c.w && rooster.x + rooster.width > c.x && rooster.y - rooster.height < c.y + c.h && rooster.y > c.y) {
+          lives++; collectibles.splice(i, 1);
+          for(let j=0; j<8; j++) particles.push({x: c.x, y: c.y, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, size: 3, life: 1, color: '#FFFFFF'});
+      } else if (c.x + c.w < 0) collectibles.splice(i, 1);
   }
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  ctx.strokeStyle = '#070606';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#070606'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(0, ROAD_Y); ctx.lineTo(canvas.width, ROAD_Y); ctx.stroke();
-
-  obstacles.forEach(o => {
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(o.x, o.y - o.h, o.w, o.h);
-    ctx.strokeRect(o.x, o.y - o.h, o.w, o.h);
-    ctx.fillStyle = '#070606';
-    o.spots.forEach(s => ctx.fillRect(s.side === 'left' ? o.x : o.x+o.w-o.w*s.rw, o.y-o.h+(o.h*s.ry), o.w*s.rw, 2));
+  
+  particles.forEach(p => { ctx.fillStyle = p.color; ctx.globalAlpha = p.life; ctx.fillRect(p.x, p.y, p.size, p.size); ctx.globalAlpha = 1; });
+  obstacles.forEach(o => { 
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(o.x, o.y - o.h, o.w, o.h); 
+      ctx.strokeRect(o.x, o.y - o.h, o.w, o.h); ctx.fillStyle = '#070606'; 
+      o.spots.forEach(s => { ctx.fillRect((s.side === 'left' ? o.x : o.x + o.w - o.w * s.rw), o.y - o.h + (o.h * s.ry), o.w * s.rw, 3); });
   });
+  collectibles.forEach(c => ctx.drawImage(heartImg, c.x, c.y, c.w, c.h));
 
   if (invulFrames === 0 || Math.floor(frameCount / 5) % 2 === 0) {
-    rooster.frameTimer++;
-    if (rooster.frameTimer > 10) { rooster.frame = (rooster.frame + 1) % 2; rooster.frameTimer = 0; }
+    rooster.frameTimer++; if (rooster.frameTimer > 10) { rooster.frame = (rooster.frame + 1) % 2; rooster.frameTimer = 0; }
     const bounce = (rooster.onGround && !gameOver) ? rooster.frame * 3 : 0;
     ctx.drawImage(roosterImg, rooster.x, rooster.y - rooster.height + bounce, rooster.width, rooster.height);
   }
 
-  // Текст СЧЕТ (отступ слева и сверху 20px)
-  const fontSize = 28;
-  ctx.fillStyle = '#070606';
-  ctx.font = `${fontSize}px "Urbox Nu Std 12", sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.fillText(`СЧЁТ: ${score}`, PADDING, PADDING + fontSize);
-
-  // ЛОГОТИП (Правый верхний угол, отступы PADDING)
-  const logH = fontSize; // Масштабируем по размеру шрифта
-  const logW = (logo.width / logo.height) * logH;
-  ctx.drawImage(logo, canvas.width - logW - PADDING, PADDING, logW, logH);
-
-  // Жизни (Правый нижний угол)
-  for (let i = 0; i < lives; i++) {
-    ctx.drawImage(heartImg, canvas.width - 40 - (i * 30), canvas.height - 40, 24, 24);
-  }
+  // UI
+  ctx.fillStyle = '#070606'; ctx.font = `${UI_SIZE}px "Urbox Nu Std 12", sans-serif`; 
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(`СЧЁТ: ${score}`, PADDING, PADDING);
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(`HI: ${highScore}`, PADDING, canvas.height - PADDING + HI_OFFSET);
+  const logW = UI_SIZE * (2025 / 300);
+  ctx.drawImage(logoImg, canvas.width - logW - PADDING, PADDING, logW, UI_SIZE);
+  const hW = UI_SIZE * (350 / 300);
+  for (let i = 0; i < lives; i++) { ctx.drawImage(heartImg, canvas.width - PADDING - hW - (i * (hW + 12)), canvas.height - PADDING - UI_SIZE, hW, UI_SIZE); }
 
   if (gameOver) {
-    ctx.fillStyle = 'rgba(232, 226, 222, 0.9)';
-    ctx.fillRect(0,0, canvas.width, canvas.height);
-    ctx.fillStyle = '#A5221D';
-    ctx.textAlign = 'center';
-    ctx.font = '40px "Urbox Nu Std 12", sans-serif';
-    ctx.fillText('ИГРА ОКОНЧЕНА', canvas.width/2, canvas.height/2);
-    ctx.font = '20px "Urbox Nu Std 12", sans-serif';
-    ctx.fillText('КЛИКНИ ДЛЯ РЕСТАРТА', canvas.width/2, canvas.height/2 + 40);
-  }
+    ctx.fillStyle = 'rgba(232, 226, 222, 0.9)'; ctx.fillRect(0,0, canvas.width, canvas.height);
+    
+    ctx.textAlign = 'center'; 
+    ctx.textBaseline = 'middle';
+    
+    // 1. Рисуем заголовок
+    ctx.font = '40px "Urbox Nu Std 12", sans-serif'; 
+    const mainText = 'ИГРА ОКОНЧЕНА';
+    const textWidth = ctx.measureText(mainText).width;
+    const titleY = canvas.height / 2 - 20; // Сдвинули чуть выше
+    ctx.fillStyle = '#A5221D'; 
+    ctx.fillText(mainText, canvas.width / 2, titleY);
 
-  requestAnimationFrame(draw);
+    // 2. Рисуем кнопку (теперь ближе к тексту)
+    const btnW = textWidth;
+    const btnH = 50;
+    const btnX = canvas.width / 2 - btnW / 2;
+    const btnY = titleY + 25; // Расстояние между центром заголовка и верхом кнопки
+    
+    ctx.fillRect(btnX, btnY, btnW, btnH);
+    
+    // 3. Текст кнопки
+    ctx.fillStyle = '#E8E2DE';
+    ctx.font = '24px "Urbox Nu Std 12", sans-serif';
+    // Центрирование текста по высоте кнопки: btnY + половина высоты + небольшая поправка шрифта
+    ctx.fillText('НАЧАТЬ ЗАНОВО', canvas.width / 2, btnY + (btnH / 2) + 2);
+  }
 }
 
 function action() {
   if (gameOver) {
-    obstacles.length = 0; score = 0; lives = 3; gameOver = false; gameSpeed = 6; frameCount = 0; nextSpawn = 15; invulFrames = 0;
+    obstacles.length = 0; collectibles.length = 0; particles.length = 0; score = 0; lives = 3; gameOver = false; gameSpeed = 6.5; frameCount = 0; distanceToNext = 120;
   } else if (rooster.onGround) {
     rooster.vy = rooster.jumpPower; rooster.onGround = false;
   }
 }
 
-document.fonts.ready.then(() => {
-  canvas.addEventListener('mousedown', action);
-  window.addEventListener('keydown', e => { if(e.code === 'Space') action(); });
-  setInterval(update, 1000/60);
-  draw();
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+
+Promise.all([document.fonts.ready, new Promise(r => logoImg.onload = r), new Promise(r => heartImg.onload = r)]).then(() => {
+    canvas.addEventListener('mousedown', action);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); action(); }, {passive: false});
+    window.addEventListener('keydown', e => { if(e.code === 'Space') action(); });
+    loop();
 });
 </script>
 </body>
